@@ -204,12 +204,19 @@ class EXCHANGE(CustomEnum):
     CFFEX = "CFFEX"
     SGEX = "SGEX"
     BJSE = "BJSE"
+    NASDAQ = "NASDAQ"
+    NYSE = "NYSE"
+    AMEX = "AMEX"
+    ARCA = "ARCA"
+    BATS = "BATS"
+    PINK = "PINK"
 
 
 # noinspection PyPep8Naming
 class TRADING_CALENDAR_TYPE(CustomEnum):
     CN_STOCK = "CN_STOCK"
     HK_STOCK = "HK_STOCK"
+    US_STOCK = "US_STOCK"
     SOUTHBOUND = "SOUTHBOUND"
     INTER_BANK = "INTERBANK"
 
@@ -219,3 +226,4 @@ TRADING_CALENDAR_TYPE.EXCHANGE = TRADING_CALENDAR_TYPE.CN_STOCK
 class MARKET(CustomEnum):
     CN = "CN"
     HK = "HK"
+    US = "US"

@@ -132,6 +132,8 @@ class Instrument(metaclass=PropertyReprMeta):
         [int] 合约卖出和买入操作需要间隔的最小交易日数，如A股为 1
         公募基金的 market_tplus 默认0
         """
+        if self.market == MARKET.US or self.market == MARKET.HK:
+            return 0
         return self._dict.get("market_tplus") or 0
 
     @cached_property
@@ -345,6 +347,13 @@ class Instrument(metaclass=PropertyReprMeta):
         TimeRange(start=time(9, 31), end=time(11, 30)),
         TimeRange(start=time(13, 1), end=time(15, 0)),
     ]
+    HK_STOCK_TRADING_PERIOD = [
+        TimeRange(start=time(9, 31), end=time(12, 0)),
+        TimeRange(start=time(13, 1), end=time(16, 0)),
+    ]
+    US_STOCK_TRADING_PERIOD = [
+        TimeRange(start=time(9, 31), end=time(16, 0)),
+    ]
 
     @cached_property
     def trading_hours(self):
@@ -353,6 +362,10 @@ class Instrument(metaclass=PropertyReprMeta):
             trading_hours = self._dict["trading_hours"]
         except KeyError:
             if self.type in INST_TYPE_IN_STOCK_ACCOUNT:
+                if self.market == MARKET.HK:
+                    return self.HK_STOCK_TRADING_PERIOD
+                elif self.market == MARKET.US:
+                    return self.US_STOCK_TRADING_PERIOD
                 return self.STOCK_TRADING_PERIOD
             return None
         trading_period = []

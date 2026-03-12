@@ -2,24 +2,21 @@
 name = "rqalpha"
 description = "Ricequant Algorithm Trading System"
 readme = "README.rst"
-license = {text = "Apache-2.0"}
+license = { text = "Apache-2.0" }
 authors = [
-    {name = "ricequant", email = "public@ricequant.com"}
+    { name = "ricequant", email = "public@ricequant.com" },
+    { name = "nange", email = "cctonange@gmail.com" },
 ]
 classifiers = [
     'Programming Language :: Python',
     'Operating System :: OS Independent',
-    'Programming Language :: Python :: 3.6',
-    'Programming Language :: Python :: 3.7',
-    'Programming Language :: Python :: 3.8',
-    'Programming Language :: Python :: 3.9',
     'Programming Language :: Python :: 3.10',
     'Programming Language :: Python :: 3.11',
     'Programming Language :: Python :: 3.12',
     'Programming Language :: Python :: 3.13',
     'Programming Language :: Python :: 3.14',
 ]
-requires-python = ">=3.6"
+requires-python = ">=3.10"
 dependencies = [
     'requests',
     'numpy < 2.0.0 ; python_version <= "3.11"',
@@ -39,7 +36,7 @@ dependencies = [
     "openpyxl",
     "methodtools",
     "filelock",
-    "typing-extensions >=4.5.0"
+    "typing-extensions >=4.5.0",
 ]
 dynamic = ["version"]
 
@@ -51,12 +48,13 @@ rqalpha = "rqalpha.__main__:entry_point"
 
 [project.optional-dependencies]
 profiler = ["line_profiler"]
+talib = ["TA-Lib>=0.6.4,<0.7.0"]
 
 [build-system]
 requires = [
     "setuptools>=61.0.0",
     "setuptools_scm[toml]>=7.0.0",
-    "wheel>=0.38.0"
+    "wheel>=0.38.0",
 ]
 build-backend = "setuptools.build_meta"
 
@@ -81,3 +79,6 @@ include = ["rqalpha", "rqalpha.*"]
 write_to = "rqalpha/_version.py"
 tag_regex = "^release/(?P<version>.*)$"
 version_scheme = "guess-next-dev"
+
+[dependency-groups]
+dev = ["ruff>=0.14.3", "pytest>=9.0.0", "ta-lib (>=0.6.4,<0.7.0)"]

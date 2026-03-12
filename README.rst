@@ -4,12 +4,12 @@ RQAlpha
 
 ..  image:: https://raw.githubusercontent.com/ricequant/rq-resource/master/rqalpha/logo.jpg
 
-..  image:: https://github.com/ricequant/rqalpha/workflows/Test/badge.svg
-    :target: https://github.com/ricequant/rqalpha/actions?query=workflow%3ATest
+..  image:: https://github.com/nange/rqalpha/workflows/Test/badge.svg
+    :target: https://github.com/nange/rqalpha/actions?query=workflow%3ATest
     :alt: GitHub Actions status for master branch
 
-..  image:: https://coveralls.io/repos/github/ricequant/rqalpha/badge.svg?branch=master
-    :target: https://coveralls.io/github/ricequant/rqalpha?branch=master
+..  image:: https://coveralls.io/repos/github/nange/rqalpha/badge.svg?branch=master
+    :target: https://coveralls.io/github/nange/rqalpha?branch=master
 
 ..  image:: https://readthedocs.org/projects/rqalpha/badge/?version=latest
     :target: http://rqalpha.readthedocs.io/zh_CN/latest/?badge=latest

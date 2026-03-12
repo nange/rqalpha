@@ -6,19 +6,19 @@ jobs:
     runs-on: ubuntu-22.04
     strategy:
       matrix:
-        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
+        python-version: ["3.11", "3.12", "3.13", "3.14"]
     steps:
     # Checks out a copy of your repository on the ubuntu-latest machine
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
       with:
         fetch-depth: 0  # 获取完整的 git 历史，而不是 shallow clone
     - name: Set up Python
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v6
       with:
         python-version: ${{ matrix.python-version }}
     - name: Cache dependencies
       # cache will change when runner.os or requirements.txt changed
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       id: cache
       with:
         path: |

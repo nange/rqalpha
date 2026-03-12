@@ -351,9 +351,20 @@ class Instrument(metaclass=PropertyReprMeta):
         TimeRange(start=time(9, 31), end=time(12, 0)),
         TimeRange(start=time(13, 1), end=time(16, 0)),
     ]
+    # US_STOCK_TRADING_PERIOD defined in US/Eastern timezone
     US_STOCK_TRADING_PERIOD = [
         TimeRange(start=time(9, 31), end=time(16, 0)),
     ]
+
+    @cached_property
+    def timezone(self):
+        import pytz
+        if self.market == MARKET.HK:
+            return pytz.timezone("Asia/Hong_Kong")
+        elif self.market == MARKET.US:
+            return pytz.timezone("US/Eastern")
+        else:
+            return pytz.timezone("Asia/Shanghai")
 
     @cached_property
     def trading_hours(self):

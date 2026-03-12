@@ -51,7 +51,11 @@ profiler = ["line_profiler"]
 talib = ["TA-Lib>=0.6.4,<0.7.0"]
 
 [build-system]
-requires = ["setuptools>=61.0.0", "setuptools_scm[toml]>=7.0.0"]
+requires = [
+    "setuptools>=61.0.0",
+    "setuptools_scm[toml]>=7.0.0",
+    "wheel>=0.38.0",
+]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]

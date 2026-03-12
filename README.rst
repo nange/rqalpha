@@ -28,6 +28,7 @@ RQAlpha
     :target: https://pypi.python.org/pypi/rqalpha
     :alt: PyPI - Downloads
 
+**此项目Fork自官方项目，在官方项目基础上添加了支持港美股交易回测能力**
 
 RQAlpha 从数据获取、算法交易、回测引擎，实盘模拟，实盘交易到数据分析，为程序化交易者提供了全套解决方案。
 

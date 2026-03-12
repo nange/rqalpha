@@ -23,5 +23,6 @@ rqalpha_test_coverage_report/
 .env
 .DS_Store
 rqalpha/_version.py
+uv.lock
 
 .claude/settings.local.json

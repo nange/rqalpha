@@ -15,18 +15,7 @@ RQAlpha
     :target: http://rqalpha.readthedocs.io/zh_CN/latest/?badge=latest
     :alt: Documentation Status
 
-..  image:: https://img.shields.io/pypi/v/rqalpha.svg
-    :target: https://pypi.python.org/pypi/rqalpha
-    :alt: PyPI Version
 
-..  image:: https://img.shields.io/pypi/pyversions/rqalpha.svg
-    :target: https://pypi.python.org/pypi/rqalpha
-    :alt: Python Version Support
-
-
-..  image:: https://img.shields.io/pypi/dm/rqalpha?label=pypi%20downloads
-    :target: https://pypi.python.org/pypi/rqalpha
-    :alt: PyPI - Downloads
 
 **此项目Fork自官方项目，在官方项目基础上添加了支持港美股交易回测能力**
 

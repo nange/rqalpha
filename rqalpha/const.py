@@ -204,12 +204,8 @@ class EXCHANGE(CustomEnum):
     CFFEX = "CFFEX"
     SGEX = "SGEX"
     BJSE = "BJSE"
-    NASDAQ = "NASDAQ"
-    NYSE = "NYSE"
-    AMEX = "AMEX"
-    ARCA = "ARCA"
-    BATS = "BATS"
-    PINK = "PINK"
+    XNAS = "XNAS"
+    XNYS = "XNYS"
 
 
 # noinspection PyPep8Naming

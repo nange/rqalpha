@@ -204,6 +204,7 @@ class EXCHANGE(CustomEnum):
     CFFEX = "CFFEX"
     SGEX = "SGEX"
     BJSE = "BJSE"
+    XHKG = "XHKG"
     XNAS = "XNAS"
     XNYS = "XNYS"
 

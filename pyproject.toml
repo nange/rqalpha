@@ -76,7 +76,7 @@ include = ["rqalpha", "rqalpha.*"]
 
 [tool.setuptools_scm]
 write_to = "rqalpha/_version.py"
-tag_regex = "^release/(?P<version>.*)$"
+tag_regex = "^(?:release/)?(?P<version>v?\\d+(?:\\.\\d+)*.*)$"
 version_scheme = "guess-next-dev"
 
 [dependency-groups]

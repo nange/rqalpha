@@ -77,7 +77,7 @@ try:
     version = get_version(
         root='../..',
         relative_to=__file__,
-        tag_regex=r'^release/(?P<version>[^\+]+)(?:\+.*)?$'
+        tag_regex=r'^(?:release/)?(?P<version>v?\d+(?:\.\d+)*.*)$'
     )
     # 提取主版本号 (例如 5.6.6.dev83 -> 5.6.x)
     version_parts = version.split('.')

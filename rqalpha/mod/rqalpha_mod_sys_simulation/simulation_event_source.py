@@ -15,15 +15,17 @@
 #         在此前提下，对本软件的使用同样需要遵守 Apache 2.0 许可，Apache 2.0 许可与本许可冲突之处，以本许可为准。
 #         详细的授权流程，请联系 public@ricequant.com 获取。
 
-from datetime import timedelta, datetime, time
+from datetime import timedelta, datetime
 
-from rqalpha.environment import Environment
 from rqalpha.interface import AbstractEventSource
 from rqalpha.core.events import Event, EVENT
 from rqalpha.utils.exception import patch_user_exc
 from rqalpha.utils.datetime_func import convert_int_to_datetime
-from rqalpha.const import DEFAULT_ACCOUNT_TYPE, INSTRUMENT_TYPE
+from rqalpha.const import DEFAULT_ACCOUNT_TYPE, INSTRUMENT_TYPE, MARKET
 from rqalpha.utils.i18n import gettext as _
+
+from rqalpha.model.instrument import Instrument
+from rqalpha.utils import merge_trading_period
 
 
 class SimulationEventSource(AbstractEventSource):
@@ -32,40 +34,85 @@ class SimulationEventSource(AbstractEventSource):
         self._env = env
         self._config = env.config
         self._universe_changed = False
-        self._env.event_bus.add_listener(EVENT.POST_UNIVERSE_CHANGED, self._on_universe_changed)
+        self._env.event_bus.add_listener(
+            EVENT.POST_UNIVERSE_CHANGED, self._on_universe_changed
+        )
 
-        self._get_day_bar_dt = lambda date: date.replace(hour=15, minute=0)
-        self._get_after_trading_dt = lambda date: date.replace(hour=15, minute=30)
+        # 确定收盘时间
+        markets = getattr(env.config.base, "market", MARKET.CN)
+        if isinstance(markets, str):
+            markets = [markets]
+        markets = set(m.upper() for m in markets) if markets else {MARKET.CN}
+
+        max_close_hour = 15
+        max_close_minute = 0
+
+        if MARKET.HK in markets or MARKET.US in markets:
+            max_close_hour = 16
+
+        self._get_day_bar_dt = lambda date: date.replace(
+            hour=max_close_hour, minute=max_close_minute
+        )
+
+        after_trading_hour = max_close_hour
+        after_trading_minute = max_close_minute + 30
+        if after_trading_minute >= 60:
+            after_trading_hour += 1
+            after_trading_minute -= 60
+
+        self._get_after_trading_dt = lambda date: date.replace(
+            hour=after_trading_hour, minute=after_trading_minute
+        )
 
     def _on_universe_changed(self, _):
         self._universe_changed = True
 
     def _get_universe(self):
         universe = self._env.get_universe()
-        if len(universe) == 0 and DEFAULT_ACCOUNT_TYPE.STOCK.name not in self._config.base.accounts:
-            raise patch_user_exc(RuntimeError(_(
-                "Current universe is empty. Please use subscribe function before trade"
-            )), force=True)
+        if (
+            len(universe) == 0
+            and DEFAULT_ACCOUNT_TYPE.STOCK.name not in self._config.base.accounts
+        ):
+            raise patch_user_exc(
+                RuntimeError(
+                    _(
+                        "Current universe is empty. Please use subscribe function before trade"
+                    )
+                ),
+                force=True,
+            )
         return universe
 
     # [BEGIN] minute event helper
     def _get_stock_trading_minutes(self, trading_date):
         trading_minutes = set()
 
-        current_dt = datetime.combine(trading_date, time(9, 31))
-        am_end_dt = current_dt.replace(hour=11, minute=30)
-        pm_start_dt = current_dt.replace(hour=13, minute=1)
-        pm_end_dt = current_dt.replace(hour=15, minute=0)
+        markets = getattr(self._config.base, "market", MARKET.CN)
+        if isinstance(markets, str):
+            markets = [markets]
+        markets = set(m.upper() for m in markets) if markets else {MARKET.CN}
 
-        delta_minute = timedelta(minutes=1)
-        while current_dt <= am_end_dt:
-            trading_minutes.add(current_dt)
-            current_dt += delta_minute
+        trading_periods = []
+        if MARKET.CN in markets:
+            trading_periods.extend(Instrument.STOCK_TRADING_PERIOD)
+        if MARKET.HK in markets:
+            trading_periods.extend(Instrument.HK_STOCK_TRADING_PERIOD)
+        if MARKET.US in markets:
+            trading_periods.extend(Instrument.US_STOCK_TRADING_PERIOD)
 
-        current_dt = pm_start_dt
-        while current_dt <= pm_end_dt:
-            trading_minutes.add(current_dt)
-            current_dt += delta_minute
+        if not trading_periods:
+            trading_periods.extend(Instrument.STOCK_TRADING_PERIOD)
+
+        merged_periods = merge_trading_period(trading_periods)
+
+        for period in merged_periods:
+            current_dt = datetime.combine(trading_date, period.start)
+            end_dt = datetime.combine(trading_date, period.end)
+
+            while current_dt <= end_dt:
+                trading_minutes.add(current_dt)
+                current_dt += timedelta(minutes=1)
+
         return trading_minutes
 
     def _get_future_trading_minutes(self, trading_date):
@@ -74,17 +121,26 @@ class SimulationEventSource(AbstractEventSource):
         for order_book_id in universe:
             if self._env.get_account_type(order_book_id) == DEFAULT_ACCOUNT_TYPE.STOCK:
                 continue
-            trading_minutes.update(self._env.data_proxy.get_trading_minutes_for(order_book_id, trading_date))
+            trading_minutes.update(
+                self._env.data_proxy.get_trading_minutes_for(
+                    order_book_id, trading_date
+                )
+            )
         return set([convert_int_to_datetime(minute) for minute in trading_minutes])
 
     def _get_trading_minutes(self, trading_date):
         trading_minutes = set()
         for account_type in self._config.base.accounts:
             if account_type == DEFAULT_ACCOUNT_TYPE.STOCK:
-                trading_minutes = trading_minutes.union(self._get_stock_trading_minutes(trading_date))
+                trading_minutes = trading_minutes.union(
+                    self._get_stock_trading_minutes(trading_date)
+                )
             elif account_type == DEFAULT_ACCOUNT_TYPE.FUTURE:
-                trading_minutes = trading_minutes.union(self._get_future_trading_minutes(trading_date))
+                trading_minutes = trading_minutes.union(
+                    self._get_future_trading_minutes(trading_date)
+                )
         return sorted(list(trading_minutes))
+
     # [END] minute event helper
 
     def events(self, start_date, end_date, frequency):
@@ -98,11 +154,23 @@ class SimulationEventSource(AbstractEventSource):
                 dt_bar = self._get_day_bar_dt(date)
                 dt_after_trading = self._get_after_trading_dt(date)
 
-                yield Event(EVENT.BEFORE_TRADING, calendar_dt=dt_before_trading, trading_dt=dt_before_trading)
-                yield Event(EVENT.OPEN_AUCTION, calendar_dt=dt_before_trading, trading_dt=dt_before_trading)
+                yield Event(
+                    EVENT.BEFORE_TRADING,
+                    calendar_dt=dt_before_trading,
+                    trading_dt=dt_before_trading,
+                )
+                yield Event(
+                    EVENT.OPEN_AUCTION,
+                    calendar_dt=dt_before_trading,
+                    trading_dt=dt_before_trading,
+                )
                 yield Event(EVENT.BAR, calendar_dt=dt_bar, trading_dt=dt_bar)
-                yield Event(EVENT.AFTER_TRADING, calendar_dt=dt_after_trading, trading_dt=dt_after_trading)
-        elif frequency == '1m':
+                yield Event(
+                    EVENT.AFTER_TRADING,
+                    calendar_dt=dt_after_trading,
+                    trading_dt=dt_after_trading,
+                )
+        elif frequency == "1m":
             for day in trading_dates:
                 before_trading_flag = True
                 date = day.to_pydatetime()
@@ -121,7 +189,9 @@ class SimulationEventSource(AbstractEventSource):
                             continue
 
                         if calendar_dt < dt_before_day_trading:
-                            trading_dt = calendar_dt.replace(year=date.year, month=date.month, day=date.day)
+                            trading_dt = calendar_dt.replace(
+                                year=date.year, month=date.month, day=date.day
+                            )
                         else:
                             trading_dt = calendar_dt
                         if before_trading_flag:
@@ -129,7 +199,7 @@ class SimulationEventSource(AbstractEventSource):
                             yield Event(
                                 EVENT.BEFORE_TRADING,
                                 calendar_dt=calendar_dt - timedelta(minutes=30),
-                                trading_dt=trading_dt - timedelta(minutes=30)
+                                trading_dt=trading_dt - timedelta(minutes=30),
                             )
                             yield Event(
                                 EVENT.OPEN_AUCTION,
@@ -142,7 +212,9 @@ class SimulationEventSource(AbstractEventSource):
                             exit_loop = False
                             break
                         # yield handle bar
-                        yield Event(EVENT.BAR, calendar_dt=calendar_dt, trading_dt=trading_dt)
+                        yield Event(
+                            EVENT.BAR, calendar_dt=calendar_dt, trading_dt=trading_dt
+                        )
                     if exit_loop:
                         done = True
 
@@ -156,13 +228,17 @@ class SimulationEventSource(AbstractEventSource):
                 last_dt = None
                 dt_before_day_trading = date.replace(hour=8, minute=30)
                 while True:
-                    for tick in data_proxy.get_merge_ticks(self._get_universe(), date, last_dt):
+                    for tick in data_proxy.get_merge_ticks(
+                        self._get_universe(), date, last_dt
+                    ):
                         # find before trading time
 
                         calendar_dt = tick.datetime
 
                         if calendar_dt < dt_before_day_trading:
-                            trading_dt = calendar_dt.replace(year=date.year, month=date.month, day=date.day)
+                            trading_dt = calendar_dt.replace(
+                                year=date.year, month=date.month, day=date.day
+                            )
                         else:
                             trading_dt = calendar_dt
 
@@ -173,7 +249,10 @@ class SimulationEventSource(AbstractEventSource):
                             这里区分时间主要是为了对其之前，之前对获取tick数据的时间有限制，期货的盘前时间是20:30，股票是09:00。
                             在解除获取tick数据的限制后，股票的tick的开始时间是09:15，而期货则是20:59
                             """
-                            if self._env.get_instrument(tick.order_book_id).type == INSTRUMENT_TYPE.FUTURE:
+                            if (
+                                self._env.get_instrument(tick.order_book_id).type
+                                == INSTRUMENT_TYPE.FUTURE
+                            ):
                                 yield Event(
                                     EVENT.BEFORE_TRADING,
                                     calendar_dt=calendar_dt - timedelta(minutes=30),
@@ -191,7 +270,12 @@ class SimulationEventSource(AbstractEventSource):
                             break
 
                         last_dt = calendar_dt
-                        yield Event(EVENT.TICK, calendar_dt=calendar_dt, trading_dt=trading_dt, tick=tick)
+                        yield Event(
+                            EVENT.TICK,
+                            calendar_dt=calendar_dt,
+                            trading_dt=trading_dt,
+                            tick=tick,
+                        )
 
                     else:
                         break
@@ -199,4 +283,6 @@ class SimulationEventSource(AbstractEventSource):
                 dt = self._get_after_trading_dt(date)
                 yield Event(EVENT.AFTER_TRADING, calendar_dt=dt, trading_dt=dt)
         else:
-            raise NotImplementedError(_("Frequency {} is not support.").format(frequency))
+            raise NotImplementedError(
+                _("Frequency {} is not support.").format(frequency)
+            )

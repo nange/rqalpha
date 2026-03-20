@@ -16,13 +16,18 @@
 #         详细的授权流程，请联系 public@ricequant.com 获取。
 
 from rqalpha.interface import AbstractMod
-from rqalpha.const import INSTRUMENT_TYPE
+from rqalpha.const import INSTRUMENT_TYPE, MARKET
 from rqalpha.utils.exception import patch_user_exc
 from rqalpha.utils import INST_TYPE_IN_STOCK_ACCOUNT
 from rqalpha.utils.i18n import gettext as _
 from rqalpha.utils.logger import user_log
 
-from .deciders import StockTransactionCostDecider, FuturesTransactionCostDecider
+from .deciders import (
+    StockTransactionCostDecider,
+    FuturesTransactionCostDecider,
+    HKStockTransactionCostDecider,
+    USStockTransactionCostDecider,
+)
 
 
 class TransactionCostMod(AbstractMod):
@@ -31,8 +36,14 @@ class TransactionCostMod(AbstractMod):
         futures_commission_multiplier = mod_config.futures_commission_multiplier
 
         if stock_commission_multiplier < 0 or mod_config.tax_multiplier < 0:
-            raise patch_user_exc(ValueError(_(u"invalid commission multiplier or tax multiplier"
-                                              u" value: value range is [0, +∞)")))
+            raise patch_user_exc(
+                ValueError(
+                    _(
+                        "invalid commission multiplier or tax multiplier"
+                        " value: value range is [0, +∞)"
+                    )
+                )
+            )
 
         stock_min_commission = mod_config.cn_stock_min_commission
         if stock_min_commission is not None:
@@ -45,14 +56,27 @@ class TransactionCostMod(AbstractMod):
         for instrument_type in INST_TYPE_IN_STOCK_ACCOUNT:
             if instrument_type == INSTRUMENT_TYPE.PUBLIC_FUND:
                 continue
-            env.set_transaction_cost_decider(instrument_type, StockTransactionCostDecider(
-                stock_commission_multiplier, stock_min_commission,
-                mod_config.tax_multiplier, mod_config.pit_tax, env.event_bus
-            ))
+            env.set_transaction_cost_decider(
+                instrument_type,
+                StockTransactionCostDecider(
+                    stock_commission_multiplier,
+                    stock_min_commission,
+                    mod_config.tax_multiplier,
+                    mod_config.pit_tax,
+                    env.event_bus,
+                ),
+            )
+            env.set_transaction_cost_decider(
+                instrument_type, HKStockTransactionCostDecider(), market=MARKET.HK
+            )
+            env.set_transaction_cost_decider(
+                instrument_type, USStockTransactionCostDecider(), market=MARKET.US
+            )
 
-        env.set_transaction_cost_decider(INSTRUMENT_TYPE.FUTURE, FuturesTransactionCostDecider(
-            futures_commission_multiplier
-        ))
+        env.set_transaction_cost_decider(
+            INSTRUMENT_TYPE.FUTURE,
+            FuturesTransactionCostDecider(futures_commission_multiplier),
+        )
 
     def tear_down(self, code, exception=None):
         pass

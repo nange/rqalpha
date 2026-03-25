@@ -1,5 +1,5 @@
 [project]
-name = "rqalpha"
+name = "rqalpha-plus"
 description = "Ricequant Algorithm Trading System"
 readme = "README.rst"
 license = { text = "Apache-2.0" }
